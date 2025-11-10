@@ -3,11 +3,10 @@ import os
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
-from config import IMAGE_SIZE, BEAN_CATEGORIES, MODEL_PATHS  # Importa configuraciones
+from config import IMAGE_SIZE, BEAN_CATEGORIES, MODEL_PATHS
 
 # --- CONFIGURACIÓN ---
-DATA_DIR = 'data/coffee_beans'
+DATA_DIR = 'scripts/data/coffee_beans/train' # Ruta que contiene las imágenes de entrenamiento
 INPUT_SHAPE = (IMAGE_SIZE[0], IMAGE_SIZE[1], 3)  # (224, 224, 3)
 NUM_CLASSES = len(BEAN_CATEGORIES)
 BATCH_SIZE = 32

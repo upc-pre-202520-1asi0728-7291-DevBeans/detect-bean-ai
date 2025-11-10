@@ -1,142 +1,102 @@
 """
 Módulo para carga y uso de modelos de machine learning.
-Incluye predicción de defectos y clasificación.
+Intenta cargar el modelo CNN real. Si falla, reporta el error.
 """
 
 import numpy as np
-# joblib y tensorflow/keras son necesarios para un modelo real
-import joblib
-import tensorflow as tf
 from tensorflow import keras
-from config import BEAN_CATEGORIES, MODEL_PATHS
+
+from config import CNN_COLOR_CLASSES, MODEL_PATHS, QUALITY_COLOR_RANGES
+
 
 class ModelPredictor:
     """Clase para manejar predicciones con modelos de ML."""
 
     def __init__(self):
         """Inicializa el predictor de modelos."""
-        self.defect_categories = BEAN_CATEGORIES
+        self.defect_categories = CNN_COLOR_CLASSES
         self.model_paths = MODEL_PATHS
-        self.defect_model = None
+        self.defect_model = None  # Se inicializa como None
         self.quality_model = None
-
-        # Cargar modelos (en una implementación real, estos se cargarían desde archivos)
         self._load_models()
-
-    # ... (funciones auxiliares _load_models, _create_dummy_model, _create_dummy_classifier quedan igual)
 
     def _load_models(self):
         """
         Carga los modelos de machine learning.
-        En esta versión simulada, se usan modelos dummy.
+        Intenta cargar el modelo real .h5; si falla, self.defect_model permanecerá None.
         """
         try:
-            # En una implementación real, aquí se cargarían los modelos entrenados
-            # self.defect_model = keras.models.load_model(self.model_paths['defect_detector'])
+            # --- MODIFICACIÓN ---
+            # Intentar cargar el modelo CNN real (4 clases)
+            self.defect_model = keras.models.load_model(self.model_paths['defect_detector'])
+            print(f"Modelo CNN real cargado exitosamente desde: {self.model_paths['defect_detector']}")
+
+            # (El clasificador de calidad (pkl) no se usa en este flujo)
             # self.quality_model = joblib.load(self.model_paths['quality_classifier'])
 
-            print("Modelos cargados (simulación)")
-            # Por ahora, usamos modelos dummy para la demostración
-            self.defect_model = self._create_dummy_model()
-            self.quality_model = self._create_dummy_classifier()
-
         except Exception as e:
-            print(f"Error cargando modelos: {e}")
-            print("Usando modelos dummy para demostración")
-            self.defect_model = self._create_dummy_model()
-            self.quality_model = self._create_dummy_classifier()
+            # --- MODIFICACIÓN ---
+            # Si falla la carga, imprime el error y self.defect_model se queda como None.
+            print(f"ERROR CRÍTICO AL CARGAR MODELO CNN: {e}")
+            print(f"El modelo en '{self.model_paths['defect_detector']}' no se pudo cargar.")
+            print("El sistema no podrá realizar predicciones de color/calidad.")
+            self.defect_model = None
 
-    @staticmethod
-    def _create_dummy_model():
-        """Crea un modelo dummy para demostración."""
-        # En una implementación real, esto sería un modelo CNN preentrenado
-        return "dummy_cnn_model"
-
-    @staticmethod
-    def _create_dummy_classifier():
-        """Crea un clasificador dummy para demostración."""
-        # En una implementación real, esto sería un RandomForest o SVM entrenado
-        return "dummy_classifier"
-
-    def predict_defects(self, processed_image):
+    def predict_color_percentages(self, processed_image):
         """
-        Predice los tipos de defectos en el grano.
+        Predice los porcentajes de color (Dark, Green, Light, Medium) del grano
+        usando el modelo CNN.
 
         Args:
-            processed_image (numpy.ndarray): Imagen preprocesada del grano (224x224)
+            processed_image (numpy.ndarray): Imagen preprocesada del grano (224x224x3)
 
         Returns:
-            dict: Probabilidades para cada tipo de defecto
+            dict: Porcentajes para cada clase de color, o None si el modelo no está cargado.
         """
-        # --- SIMULACIÓN AVANZADA DE PREDICCIÓN CNN ---
+        # --- MODIFICACIÓN ---
+        # Comprobar si el modelo se cargó correctamente (no es None)
+        if self.defect_model is not None:
 
-        # Usar un hash simple de la imagen para simular diferentes predicciones para diferentes granos
-        # En una implementación real, la predicción del CNN sería un proceso determinista basado en el modelo.
-        image_hash = hash(processed_image.tobytes())
-        np.random.seed(image_hash % 1000)
+            # 1. Preparación de la imagen para la CNN
+            normalized_image = processed_image / 255.0
+            input_tensor = np.expand_dims(normalized_image, axis=0)
 
-        predictions = {}
-        # Asignar probabilidades con un sesgo por defecto para simular diferentes calidades
-        for category in self.defect_categories:
-            if category == 'grano_sano':
-                # Mayor probabilidad de ser sano
-                prob = np.random.uniform(0.7, 0.95)
-            elif category == 'grano_manchado':
-                # Simular una ligera probabilidad de mancha
-                prob = np.random.uniform(0.05, 0.2)
-            elif category == 'grano_quebrado':
-                # Simular una probabilidad baja de quiebre
-                prob = np.random.uniform(0.0, 0.1)
-            elif category == 'grano_insecto':
-                # Simular una probabilidad muy baja de insecto
-                prob = np.random.uniform(0.0, 0.05)
-            elif category == 'grano_moho':
-                # Simular una probabilidad extremadamente baja de moho
-                prob = np.random.uniform(0.0, 0.02)
-            else:
-                prob = np.random.uniform(0.0, 0.1)
+            # 2. PREDICCIÓN REAL con el modelo de 4 salidas
+            raw_predictions = self.defect_model.predict(input_tensor, verbose=0)[0]
 
-            predictions[category] = round(prob, 3)
+            predictions = {}
+            # Mapear la salida del modelo a las clases de color
+            for i, color_class in enumerate(CNN_COLOR_CLASSES):
+                predictions[color_class] = round(raw_predictions[i].item(), 3)
 
-        # Simulación de un grano defectuoso específico para demostración
-        # Si el hash cumple una condición (ej: las últimas dos cifras son 42)
-        if image_hash % 100 == 42:
-            predictions['grano_sano'] = 0.1
-            predictions['grano_quebrado'] = np.random.uniform(0.7, 0.85)
-            predictions['grano_manchado'] = np.random.uniform(0.05, 0.1)
+            # Asegurar que el total sea 100% para la clasificación de rangos
+            total_prob = sum(predictions.values())
+            if total_prob > 0:
+                 predictions = {k: (v / total_prob) * 100 for k, v in predictions.items()}
 
-        # Normalizar las probabilidades para que sumen 1, como una salida de softmax
-        total = sum(predictions.values())
-        if total > 0:
-            predictions = {k: v/total for k, v in predictions.items()}
-        
-        return predictions
-    
+            return predictions
+
+        # --- MODIFICACIÓN ---
+        # Si el modelo es None (falló la carga), no hay simulación.
+        # Devuelve None para que el bucle principal maneje este error.
+        else:
+            return None
+
     @staticmethod
-    def predict_quality_features(features):
+    def classify_by_color_ranges(color_percentages):
         """
-        Predice la calidad basada en características extraídas.
-        
-        Args:
-            features (dict): Características extraídas del grano
-            
-        Returns:
-            float: Puntuación de calidad predicha
+        Clasifica la categoría de calidad (Specialty, A, B, C) usando los
+        rangos de color predefinidos en config.py.
+        (Esta función no cambia)
         """
-        # En una implementación real, usaríamos el modelo de calidad
-        # quality_score = self.quality_model.predict([list(features.values())])
-        
-        # Simulación basada en características
-        quality_score = 0.7  # Valor base
-        
-        # Ajustar basado en características (simulación)
-        if features.get('has_cracks', False):
-            quality_score -= 0.3
-        
-        if features.get('dark_spots_area', 0) > 0.1:
-            quality_score -= 0.2
-        
-        if features.get('circularity', 1) > 0.8:
-            quality_score += 0.1
-        
-        return max(0.0, min(1.0, quality_score))
+        for quality_category, ranges in QUALITY_COLOR_RANGES.items():
+            is_match = True
+            for color_class, (min_val, max_val) in ranges.items():
+                predicted_val = color_percentages.get(color_class, 0)
+
+                if not (min_val <= predicted_val <= max_val):
+                    is_match = False
+                    break
+            if is_match:
+                return quality_category
+        return 'C'

@@ -13,7 +13,6 @@ from image_processor import ImageProcessor
 from feature_extractor import FeatureExtractor
 from model_predictor import ModelPredictor
 from quality_classifier import QualityClassifier
-# config se importa implícitamente a través de los otros módulos
 
 class CoffeeBeanClassifier:
     """Clase principal del sistema de clasificación de granos de café."""
@@ -30,12 +29,6 @@ class CoffeeBeanClassifier:
     def analyze_single_image(self, image_path):
         """
         Analiza una sola imagen de granos de café.
-
-        Args:
-            image_path (str): Ruta a la imagen a analizar
-
-        Returns:
-            dict: Resultados del análisis completo
         """
         print(f"Analizando imagen: {image_path}")
 
@@ -46,7 +39,6 @@ class CoffeeBeanClassifier:
         print(f"Dimensiones de la imagen original: {original_image.shape}")
 
         enhanced_image = self.image_processor.enhance_image_quality(original_image)
-
         beans_data = self.image_processor.segment_beans(enhanced_image)
         print(f"Se encontraron {len(beans_data)} granos en la imagen")
 
@@ -66,39 +58,38 @@ class CoffeeBeanClassifier:
                 else:
                     model_input_image = cv2.cvtColor(bean_image, cv2.COLOR_GRAY2BGR)
 
-                model_input = cv2.resize(model_input_image, (224, 224))
+                rgb_image_for_model = cv2.cvtColor(model_input_image, cv2.COLOR_BGR2RGB)
+                model_input = cv2.resize(rgb_image_for_model, (224, 224))
 
-                # --- INICIO DE MODIFICACIÓN ---
+                # --- INICIO DEL NUEVO FLUJO REFACTORIZADO ---
 
-                # 1. Predecir porcentajes de color (Dark, Green, Light, Medium)
+                # 1. Predecir porcentajes de color (confianza de la CNN)
                 color_percentages = self.model_predictor.predict_color_percentages(model_input)
 
-                # 2. Comprobar si el modelo CNN falló
                 if color_percentages is None:
                     print(f"Error en grano {i+1}: El modelo CNN no está cargado. No se puede predecir.")
-                    # Registrar un análisis fallido para este grano
                     bean_analysis = {
                         'bean_id': i + 1,
                         'error': 'Modelo CNN no disponible. Predicción fallida.',
-                        'quality_assessment': {'quality_category': 'C', 'final_score': 0.0} # Asignar la peor calidad
+                        'quality_assessment': {'quality_category': 'C', 'final_score': 0.0}
                     }
                     bean_analysis_results.append(bean_analysis)
-                    continue # Saltar al siguiente grano
+                    continue
 
-                # 3. Clasificar la categoría de calidad (Specialty, A, B, C) usando los rangos
-                quality_category = self.model_predictor.classify_by_color_ranges(color_percentages)
+                # 2. Obtener la puntuación base según la clase de color ganadora
+                winning_class, base_score = self.model_predictor.get_base_score_from_color(color_percentages)
 
-                # 4. Clasificar calidad final (combinando categoría de color y forma)
+                # 3. Clasificar calidad final (combinando IA y CV)
                 quality_result = self.quality_classifier.classify_bean_quality(
-                    quality_category, features
+                    base_score, winning_class, features
                 )
 
-                # --- FIN DE MODIFICACIÓN ---
+                # --- FIN DEL NUEVO FLUJO REFACTORIZADO ---
 
                 bean_analysis = {
                     'bean_id': i + 1,
                     'features': features,
-                    'color_percentages': color_percentages,
+                    'color_percentages (confianza_cnn)': color_percentages,
                     'quality_assessment': quality_result,
                     'bounding_box': bean_data['bbox'],
                     'area': bean_data['area']
@@ -112,7 +103,6 @@ class CoffeeBeanClassifier:
 
         # 4. Generar reporte general del lote
         if bean_analysis_results:
-            # Filtrar solo los análisis exitosos para el reporte
             successful_assessments = [
                 result['quality_assessment'] for result in bean_analysis_results
                 if 'error' not in result
@@ -138,12 +128,9 @@ class CoffeeBeanClassifier:
 
         return final_results
 
+
     @staticmethod
     def save_results(results, output_path=None):
-        """
-        Guarda los resultados del análisis en un archivo JSON.
-        (Esta función no cambia)
-        """
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_path = f"coffee_analysis_{timestamp}.json"
@@ -173,10 +160,6 @@ class CoffeeBeanClassifier:
             return None
 
     def print_summary(self, results):
-        """
-        Imprime un resumen legible de los resultados.
-        (Esta función no cambia)
-        """
         if 'error' in results:
             print(f"Error en el análisis: {results['error']}")
             return
@@ -201,7 +184,7 @@ class CoffeeBeanClassifier:
             percentages = batch_report.get('category_percentages', {})
 
             print("\nDistribución de calidades:")
-            categories_to_print = self.quality_classifier.defect_categories
+            categories_to_print = self.quality_classifier.quality_categories # Usar el nombre de variable actualizado
 
             for category in categories_to_print:
                 count = distribution.get(category, 0)
@@ -213,14 +196,16 @@ class CoffeeBeanClassifier:
         print("="*50)
 
 def main():
-    """Función principal del programa."""
     classifier = CoffeeBeanClassifier()
 
-    image_path = "./imagenes_para_analizar/grano1.jpg"
+    # --- PRUEBA CON GRANO VERDE ---
+    image_path = "./imagenes_para_analizar/granoverde.png"
+
+    # --- O PRUEBA CON GRANO1 ---
+    # image_path = "./imagenes_para_analizar/grano1.jpg"
 
     if not os.path.exists(image_path):
         print(f"Error: No se encuentra la imagen '{image_path}'")
-        print("Por favor, coloca una imagen de granos de café en el directorio correcto")
         return
 
     print("Iniciando análisis de imagen...")

@@ -3,14 +3,15 @@ import os
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from config import IMAGE_SIZE, BEAN_CATEGORIES, MODEL_PATHS
+from config import IMAGE_SIZE, MODEL_PATHS
 
-# --- CONFIGURACIÓN ---
-DATA_DIR = 'scripts/data/coffee_beans/train' # Ruta que contiene las imágenes de entrenamiento
-INPUT_SHAPE = (IMAGE_SIZE[0], IMAGE_SIZE[1], 3)  # (224, 224, 3)
-NUM_CLASSES = len(BEAN_CATEGORIES)
+# --- CONFIGURACIÓN DE ENTRENAMIENTO DEL MODELO ---
+DATA_DIR_BASE = 'scripts/data/coffee_beans'
+TRAIN_DIR = os.path.join(DATA_DIR_BASE, 'train')
+INPUT_SHAPE = (IMAGE_SIZE[0], IMAGE_SIZE[1], 3) # (224, 224, 3)
+NUM_CLASSES = 4 # El dataset de Kaggle (Dark, Green, Light, Medium) tiene 4 clases
 BATCH_SIZE = 32
-EPOCHS = 5  # Usamos pocas épocas por ser un ejemplo rápido; un modelo real requiere más.
+EPOCHS = 25  # Número de ciclos para entrenar
 
 
 def build_cnn_model():
@@ -35,11 +36,9 @@ def build_cnn_model():
         Dense(512, activation='relu'),
         Dropout(0.5),
 
-        # Capa de salida: 5 neuronas (tipos de defecto) y Softmax
         Dense(NUM_CLASSES, activation='softmax')
     ])
 
-    # Compilación: Optimizador Adam, pérdida categórica para clasificación
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
@@ -67,7 +66,7 @@ def train_and_save_model():
 
     # 2. Generador de Entrenamiento
     train_generator = datagen.flow_from_directory(
-        DATA_DIR,
+        TRAIN_DIR,
         target_size=IMAGE_SIZE,
         batch_size=BATCH_SIZE,
         class_mode='categorical',
@@ -76,18 +75,24 @@ def train_and_save_model():
 
     # 3. Generador de Validación
     validation_generator = datagen.flow_from_directory(
-        DATA_DIR,
+        TRAIN_DIR,
         target_size=IMAGE_SIZE,
         batch_size=BATCH_SIZE,
         class_mode='categorical',
         subset='validation'
     )
 
+    # Verificar si el generador encontró las 4 clases
+    if train_generator.num_classes != NUM_CLASSES:
+        print(
+            f"Error: El modelo espera {NUM_CLASSES} clases, pero el generador encontró {train_generator.num_classes} clases en {TRAIN_DIR}")
+        return
+
     # 4. Construir y entrenar
     model = build_cnn_model()
 
     print("\n--- 3. Iniciando Entrenamiento ---")
-    history = model.fit(
+    model.fit(
         train_generator,
         steps_per_epoch=train_generator.samples // BATCH_SIZE,
         epochs=EPOCHS,
@@ -103,7 +108,7 @@ def train_and_save_model():
 
 if __name__ == '__main__':
     # Verificar si ya existe la carpeta de datos
-    if not os.path.exists(DATA_DIR) or len(os.listdir(DATA_DIR)) < 2:
-        print("Datos no encontrados. Ejecuta 'python download_data.py' primero.")
+    if not os.path.exists(TRAIN_DIR):
+        print(f"Datos no encontrados en {TRAIN_DIR}. Ejecuta 'python -m scripts.download_data' primero.")
     else:
         train_and_save_model()

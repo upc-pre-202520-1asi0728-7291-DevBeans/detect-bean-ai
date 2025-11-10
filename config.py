@@ -8,37 +8,39 @@ IMAGE_SIZE = (224, 224)  # Tamaño estándar para redimensionar imágenes
 CONTRAST_FACTOR = 1.5    # Factor para mejorar contraste
 BRIGHTNESS_DELTA = 10    # Ajuste de brillo
 
+# Umbrales para clasificación de calidad (para la puntuación final)
 QUALITY_THRESHOLDS = {
-    'Premium': 0.9,
-    'Specialty': 0.8,
+    'Specialty': 0.9,
+    'Premium': 0.8,
     'A': 0.7,
     'B': 0.6,
     'C': 0.0 # 'C' es cualquier cosa por debajo de 'B'
 }
 
-# Categorías de CLASIFICACIÓN FINAL
+# Categorías de CLASIFICACIÓN FINAL (del negocio)
 BEAN_CATEGORIES = [
-    'Premium',
     'Specialty',
+    'Premium',
     'A', # Alta calidad comercial
     'B', # Calidad media
-    'C'  # Baja calidad
+    'C'  # Baja calidad / industrial
 ]
 
-# Rutas de modelos (ajustar según sea necesario)
+# Rutas de modelos
 MODEL_PATHS = {
     'defect_detector': 'models/defect_detector.h5',
     'quality_classifier': 'models/quality_classifier.pkl'
 }
 
-# Estos son los rangos de una tabla de porcentajes proporcionada para la clasificación final
-QUALITY_COLOR_RANGES = {
-    'Premium': {'Green': (0, 2), 'Light': (60, 80), 'Medium': (20, 35), 'Dark': (0, 5)},
-    'Specialty': {'Green': (0, 5), 'Light': (40, 60), 'Medium': (35, 50), 'Dark': (5, 10)},
-    'A': {'Green': (0, 10), 'Light': (25, 40), 'Medium': (40, 60), 'Dark': (10, 20)},
-    'B': {'Green': (5, 15), 'Light': (10, 25), 'Medium': (35, 50), 'Dark': (25, 40)},
-    'C': {'Green': (10, 30), 'Light': (0, 10), 'Medium': (20, 40), 'Dark': (40, 70)},
-}
-
 # Mapeo de categorías de Color/Tueste (salida del CNN)
 CNN_COLOR_CLASSES = ['Dark', 'Green', 'Light', 'Medium']
+
+# --- NUEVA LÓGICA DE MAPEO EN BASE LAS VARIABLES DEL REPOSITORIO DE KAGGLE ---
+# Mapea la clase ganadora de la CNN a una puntuación de calidad base.
+# (Estos valores se basan en una tabla, donde 'Light' es el mejor y 'Green'/'Dark' son los peores)
+CNN_CLASS_TO_SCORE_MAP = {
+    'Light': 0.95,   # 'Light' (60-80%) es la base de 'Specialty'
+    'Medium': 0.85,  # 'Medium' (35-50%) es la base de 'Premium'
+    'Dark': 0.40,    # 'Dark' (40-70%) es la base de 'C'
+    'Green': 0.40    # 'Green' (10-30%) es la base de 'C'
+}

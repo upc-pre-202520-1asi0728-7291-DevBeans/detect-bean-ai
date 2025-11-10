@@ -1,0 +1,109 @@
+{
+  "analysis_timestamp": "2025-11-10T13:43:21.671117",
+  "image_file": "./imagenes_para_analizar/grano2.jpeg",
+  "image_dimensions": [
+    562,
+    820,
+    3
+  ],
+  "total_beans_detected": 1,
+  "beans_analyzed": 1,
+  "individual_analysis": [
+    {
+      "bean_id": 1,
+      "features": {
+        "hue_mean": 9.415013887683362,
+        "saturation_mean": 61.810014321673464,
+        "value_mean": 200.09054769551256,
+        "lightness_mean": 187.8882453780054,
+        "a_channel_mean": 133.49302143911117,
+        "b_channel_mean": 140.64823583022306,
+        "lbp_mean": 19.177159100772503,
+        "lbp_std": 7.424423538184525,
+        "lbp_histogram": [
+          0.02708966235569241,
+          0.013340855828484216,
+          0.012112663831262018,
+          0.009623730578940712,
+          0.008527905563751296,
+          0.008482336602723618,
+          0.009081242947658823,
+          0.01046784133321533,
+          0.012459855915282429,
+          0.015087666001211898,
+          0.01895017793593895,
+          0.027896883951039862,
+          0.03297673813036347,
+          0.038175939588569095,
+          0.026887856956855548,
+          0.028411162225495095,
+          0.018785261696029253,
+          0.023129502647334623,
+          0.014447530596299269,
+          0.012982813991838168,
+          0.011663484072560614,
+          0.011930387987151304,
+          0.013330006075858578,
+          0.01599253537019009,
+          0.3195447443797588,
+          0.25862121343627753
+        ],
+        "area": 459459.0,
+        "perimeter": 2760.0,
+        "circularity": 0.75794634479401,
+        "hu_moments": [
+          0.17873956109250225,
+          0.004170052921762572,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "edge_density": 0.1420558111275063,
+        "dark_spots_area": 0.011587535804183665,
+        "irregular_contours": 1842,
+        "has_cracks": true
+      },
+      "color_percentages (confianza_cnn)": {
+        "Dark": 5.800000000000001,
+        "Green": 0.0,
+        "Light": 0.0,
+        "Medium": 94.19999999999999
+      },
+      "quality_assessment": {
+        "quality_category": "Premium",
+        "final_score": 0.835,
+        "base_quality_score": 0.85,
+        "shape_score": 0.8,
+        "source_category (color)": "Medium"
+      },
+      "bounding_box": [
+        0,
+        0,
+        820,
+        562
+      ],
+      "area": 459459.0
+    }
+  ],
+  "batch_quality_report": {
+    "total_beans_analyzed": 1,
+    "category_distribution": {
+      "Specialty": 0,
+      "Premium": 1,
+      "A": 0,
+      "B": 0,
+      "C": 0
+    },
+    "category_percentages": {
+      "Specialty": 0.0,
+      "Premium": 100.0,
+      "A": 0.0,
+      "B": 0.0,
+      "C": 0.0
+    },
+    "average_quality_score": 0.835,
+    "lot_quality": "Premium"
+  }
+}
